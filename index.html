@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Iris AI 모바일 샌드박스</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            slate: {
+              750: '#2d3b4e',
+              850: '#151e2e'
+            }
+          },
+          animation: {
+            fadeIn: 'fadeIn 0.3s ease-out',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0', transform: 'translateY(5px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* 스크롤바 숨기기 (모바일 최적화) */
+    ::-webkit-scrollbar { width: 0px; background: transparent; }
+    /* 드래그 방지 */
+    .select-none { user-select: none; -webkit-user-select: none; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-900 text-slate-100 font-sans antialiased relative pb-12 select-none">
+
+  <!-- 상단 영역 -->
+  <div class="relative z-[999] bg-slate-950 border-b border-slate-800 px-4 py-4">
+    <div class="max-w-md mx-auto flex flex-col gap-3">
+      
+      <!-- 심플 헤더 -->
+      <div class="flex items-center gap-2">
+        <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
+        <h1 class="text-md font-bold tracking-tight text-white">
+          Iris AI 모바일 샌드박스 (HTML)
+        </h1>
+      </div>
+
+      <!-- 탭 네비게이션 -->
+      <div class="flex bg-slate-900 p-1.5 rounded-xl border border-slate-800 gap-1 select-none relative z-[1000]">
+        <button id="btn-tab-predictor" class="tab-btn flex-1 py-3 text-xs rounded-lg transition-all text-center cursor-pointer select-none active:scale-95 bg-slate-850 text-emerald-400 border border-slate-700 shadow-lg font-black" style="touch-action: manipulation; min-height: 48px; position: relative; z-index: 1010;">
+          🌸 예측 & 모핑
+        </button>
+        <button id="btn-tab-explorer" class="tab-btn flex-1 py-3 text-xs font-bold rounded-lg transition-all text-center cursor-pointer select-none active:scale-95 text-slate-400 hover:text-slate-200" style="touch-action: manipulation; min-height: 48px; position: relative; z-index: 1010;">
+          📈 결정 경계
+        </button>
+        <button id="btn-tab-dashboard" class="tab-btn flex-1 py-3 text-xs font-bold rounded-lg transition-all text-center cursor-pointer select-none active:scale-95 text-slate-400 hover:text-slate-200" style="touch-action: manipulation; min-height: 48px; position: relative; z-index: 1010;">
+          📊 데이터
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 메인 뷰포트 바디 -->
+  <div class="max-w-md mx-auto px-4 py-4 space-y-4 relative z-10">
+    
+    <!-- ========================================== -->
+    <!-- TAB 1: 실시간 예측 & 꽃 모핑 -->
+    <!-- ========================================== -->
+    <div id="tab-predictor" class="tab-content space-y-4 animate-fadeIn">
+      
+      <!-- 결과 스코어보드 -->
+      <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex items-center justify-between gap-4">
+        <div class="space-y-1">
+          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">실시간 KNN 연산결과</span>
+          <h2 class="text-lg font-black text-white">
+            품종: <span id="pred-species-name"></span>
+          </h2>
+          <span id="pred-confidence" class="text-[11px] text-slate-400 font-mono block">
+            의사결정 신뢰율: 0%
+          </span>
+        </div>
+        <div id="pred-species-icon" class="w-12 h-12 rounded-2xl flex items-center justify-center text-xs font-bold border-2 animate-pulse">
+        </div>
+      </div>
+
+      <!-- 예측 결과에 연동된 모핑 SVG -->
+      <div class="bg-slate-950 border border-slate-800/80 rounded-2xl p-4 flex flex-col items-center justify-center h-48 relative overflow-hidden">
+        <svg viewBox="0 0 200 200" class="w-40 h-40 transition-all duration-500">
+          <defs>
+            <radialGradient id="flowerCenter" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#fef08a" />
+              <stop offset="100%" stop-color="#d97706" />
+            </radialGradient>
+            <linearGradient id="petalGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop id="petal-stop-1" offset="0%" stop-color="#a5b4fc" />
+              <stop id="petal-stop-2" offset="100%" stop-color="#4f46e5" />
+            </linearGradient>
+          </defs>
+          <path d="M100,100 Q100,170 95,185" fill="none" stroke="#059669" stroke-width="4" stroke-linecap="round" />
+          <path id="leaf1" fill="url(#petalGradient)" opacity="0.85" />
+          <path id="leaf2" fill="url(#petalGradient)" opacity="0.75" />
+          <path id="leaf3" fill="url(#petalGradient)" opacity="0.75" />
+          <circle id="flower-center" cx="100" cy="100" r="10" fill="url(#flowerCenter)" />
+        </svg>
+        <span class="absolute bottom-2 right-3 text-[9px] font-mono text-slate-500">
+          수치 모핑 모델링 구동중
+        </span>
+      </div>
+
+      <!-- 슬라이더 컨트롤 -->
+      <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-4">
+        <span class="text-xs font-bold text-slate-300 block">4대 피처 크기 조절 (cm)</span>
+        
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <span class="text-slate-400 font-medium">꽃받침 길이 (SL)</span>
+            <span id="val-sl" class="text-emerald-400 font-bold">5.8 cm</span>
+          </div>
+          <input type="range" id="slider-sl" min="4.3" max="7.9" step="0.1" value="5.8" class="w-full h-2.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+        </div>
+        
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <span class="text-slate-400 font-medium">꽃받침 너비 (SW)</span>
+            <span id="val-sw" class="text-emerald-400 font-bold">3.0 cm</span>
+          </div>
+          <input type="range" id="slider-sw" min="2.0" max="4.4" step="0.1" value="3.0" class="w-full h-2.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+        </div>
+
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <span class="text-slate-400 font-medium">꽃잎 길이 (PL)</span>
+            <span id="val-pl" class="text-emerald-400 font-bold">4.3 cm</span>
+          </div>
+          <input type="range" id="slider-pl" min="1.0" max="6.9" step="0.1" value="4.35" class="w-full h-2.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+        </div>
+
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <span class="text-slate-400 font-medium">꽃잎 너비 (PW)</span>
+            <span id="val-pw" class="text-emerald-400 font-bold">1.3 cm</span>
+          </div>
+          <input type="range" id="slider-pw" min="0.1" max="2.5" step="0.1" value="1.3" class="w-full h-2.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+        </div>
+
+        <!-- 퀵매핑 버튼 -->
+        <div class="pt-2 border-t border-slate-900">
+          <span class="text-[10px] font-bold text-slate-500 uppercase block mb-2">테스트 표준 세트 주입</span>
+          <div class="grid grid-cols-3 gap-2">
+            <button class="preset-btn py-2.5 text-[11px] font-bold bg-slate-900 border border-slate-800 hover:border-slate-750 text-slate-300 rounded-xl cursor-pointer active:bg-slate-800" data-sl="5.0" data-sw="3.4" data-pl="1.5" data-pw="0.2">세토사 형</button>
+            <button class="preset-btn py-2.5 text-[11px] font-bold bg-slate-900 border border-slate-800 hover:border-slate-750 text-slate-300 rounded-xl cursor-pointer active:bg-slate-800" data-sl="5.9" data-sw="2.7" data-pl="4.2" data-pw="1.3">버시컬러 형</button>
+            <button class="preset-btn py-2.5 text-[11px] font-bold bg-slate-900 border border-slate-800 hover:border-slate-750 text-slate-300 rounded-xl cursor-pointer active:bg-slate-800" data-sl="6.5" data-sw="3.0" data-pl="5.5" data-pw="2.0">버진아카 형</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- K 파라미터 조절 -->
+      <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+        <div class="space-y-0.5">
+          <span class="text-xs font-bold text-slate-300 block">이웃 탐색 수 (KNN - K)</span>
+          <span class="text-[10px] text-slate-500 block">다수결에 참여할 가장 인접한 점의 개수</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btn-k-minus" class="w-9 h-9 bg-slate-900 border border-slate-800 rounded-xl font-black cursor-pointer text-slate-300 active:bg-slate-800">-</button>
+          <span id="val-k" class="w-8 text-center text-xs font-mono font-bold text-emerald-400">K = 3</span>
+          <button id="btn-k-plus" class="w-9 h-9 bg-slate-900 border border-slate-800 rounded-xl font-black cursor-pointer text-slate-300 active:bg-slate-800">+</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 2: 실시간 의사결정 경계선 -->
+    <!-- ========================================== -->
+    <div id="tab-explorer" class="tab-content space-y-4 hidden animate-fadeIn">
+      
+      <div class="bg-slate-950 border border-slate-800 p-4 rounded-2xl space-y-3">
+        <span class="text-xs font-bold text-slate-300 block">산점도 축 변수 고정</span>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[10px] text-slate-500 block mb-1">X축</label>
+            <select id="select-x" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-300 focus:outline-none">
+              <option value="0">꽃받침 길이</option>
+              <option value="1">꽃받침 너비</option>
+              <option value="2" selected>꽃잎 길이</option>
+              <option value="3">꽃잎 너비</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-500 block mb-1">Y축</label>
+            <select id="select-y" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-300 focus:outline-none">
+              <option value="0">꽃받침 길이</option>
+              <option value="1">꽃받침 너비</option>
+              <option value="2">꽃잎 길이</option>
+              <option value="3" selected>꽃잎 너비</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col items-center">
+        <span class="text-xs font-bold text-slate-400 mb-2 self-start px-1 block">
+          실시간 2차원 의사결정 영역 평면도
+        </span>
+        
+        <div class="relative border border-slate-900 rounded-xl overflow-hidden bg-slate-950 w-full flex justify-center">
+          <svg id="scatter-svg" viewBox="0 0 320 240" class="w-full max-w-sm h-auto"></svg>
+        </div>
+
+        <div class="w-full mt-3 p-3 bg-slate-900 rounded-xl text-[11px] text-slate-400 space-y-1">
+          <span class="font-bold text-slate-300 block">💡 모바일 하이브리드 바인딩 제어:</span>
+          현재 선택된 평면 변수 외의 슬라이더 크기를 변경하면, 보이지 않는 잔여 차원의 영향도가 계산식에 즉각 개입되어 <strong class="text-emerald-400">배경 영역의 결정 지형 형태가 유기적으로 흐르듯 모핑</strong>됩니다.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 3: 요약형 붓꽃 데이터셋 -->
+    <!-- ========================================== -->
+    <div id="tab-dashboard" class="tab-content space-y-4 hidden animate-fadeIn">
+      
+      <div id="dashboard-cards" class="grid grid-cols-3 gap-2">
+        <!-- JS로 채워짐 -->
+      </div>
+
+      <div class="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden">
+        <div class="p-3.5 border-b border-slate-900 flex justify-between items-center gap-2">
+          <span class="text-xs font-bold text-slate-200">오리지널 데이터셋 탐색 (Total 150)</span>
+          <input type="text" id="search-input" placeholder="품종 검색..." class="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-300 w-28 focus:outline-none focus:border-emerald-500" />
+        </div>
+
+        <div class="overflow-y-auto max-h-56">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead class="bg-slate-900 text-[10px] text-slate-400 sticky top-0 uppercase border-b border-slate-900">
+              <tr>
+                <th class="p-2.5 pl-4">ID</th>
+                <th class="p-2.5">꽃잎 길이/너비</th>
+                <th class="p-2.5">품종</th>
+              </tr>
+            </thead>
+            <tbody id="table-body" class="divide-y divide-slate-900 text-slate-300">
+              <!-- JS로 채워짐 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- 하단 미니 상태 바 -->
+  <div class="border-t border-slate-800 bg-slate-950 text-slate-500 py-3.5 text-center text-[10px] mt-8 relative z-10 select-none">
+    <p class="font-mono text-slate-600">⚡ Iris AI Real-time Core Sandbox / Touch Optimized</p>
+  </div>
+
+  <!-- 메인 스크립트 로직 -->
+  <script>
+    // ==========================================
+    // 1. 오리지널 데이터
+    // ==========================================
+    const IRIS_RAW_DATA = [
+      [5.1,3.5,1.4,0.2,0],[4.9,3.0,1.4,0.2,0],[4.7,3.2,1.3,0.2,0],[4.6,3.1,1.5,0.2,0],[5.0,3.6,1.4,0.2,0],[5.4,3.9,1.7,0.4,0],[4.6,3.4,1.4,0.3,0],[5.0,3.4,1.5,0.2,0],[4.4,2.9,1.4,0.2,0],[4.9,3.1,1.5,0.1,0],[5.4,3.7,1.5,0.2,0],[4.8,3.4,1.6,0.2,0],[4.8,3.0,1.4,0.1,0],[4.3,3.0,1.1,0.1,0],[5.8,4.0,1.2,0.2,0],[5.7,4.4,1.5,0.4,0],[5.4,3.9,1.3,0.4,0],[5.1,3.5,1.4,0.3,0],[5.7,3.8,1.7,0.3,0],[5.1,3.8,1.5,0.3,0],[5.4,3.4,1.7,0.2,0],[5.1,3.7,1.5,0.4,0],[4.6,3.6,1.0,0.2,0],[5.1,3.3,1.7,0.5,0],[4.8,3.4,1.9,0.2,0],[5.0,3.0,1.6,0.2,0],[5.0,3.4,1.6,0.4,0],[5.2,3.5,1.5,0.2,0],[5.2,3.4,1.4,0.2,0],[4.7,3.2,1.6,0.2,0],[4.8,3.1,1.6,0.2,0],[5.4,3.4,1.5,0.4,0],[5.2,4.1,1.5,0.1,0],[5.5,4.2,1.4,0.2,0],[4.9,3.1,1.5,0.2,0],[5.0,3.2,1.2,0.2,0],[5.5,3.5,1.3,0.2,0],[4.9,3.6,1.4,0.1,0],[4.4,3.0,1.3,0.2,0],[5.1,3.4,1.5,0.2,0],[5.0,3.5,1.3,0.3,0],[4.5,2.3,1.3,0.3,0],[4.4,3.2,1.3,0.2,0],[5.0,3.5,1.6,0.6,0],[5.1,3.8,1.9,0.4,0],[4.8,3.0,1.4,0.3,0],[5.1,3.8,1.6,0.2,0],[4.6,3.2,1.4,0.2,0],[5.3,3.7,1.5,0.2,0],[5.0,3.3,1.4,0.2,0],
+      [7.0,3.2,4.7,1.4,1],[6.4,3.2,4.5,1.5,1],[6.9,3.1,4.9,1.5,1],[5.5,2.3,4.0,1.3,1],[6.5,2.8,4.6,1.5,1],[5.7,2.8,4.5,1.3,1],[6.3,3.3,4.7,1.6,1],[4.9,2.4,3.3,1.0,1],[6.6,2.9,4.6,1.3,1],[5.2,2.7,3.9,1.4,1],[5.0,2.0,3.5,1.0,1],[5.9,3.0,4.2,1.5,1],[6.0,2.2,4.0,1.0,1],[6.1,2.9,4.7,1.4,1],[5.6,2.9,3.6,1.3,1],[6.7,3.1,4.4,1.4,1],[5.6,3.0,4.5,1.5,1],[5.8,2.7,4.1,1.0,1],[6.2,2.2,4.5,1.5,1],[5.6,2.5,3.9,1.1,1],[5.9,3.2,4.8,1.8,1],[6.1,2.8,4.0,1.3,1],[6.3,2.5,4.9,1.5,1],[6.1,2.8,4.7,1.2,1],[6.4,2.9,4.3,1.3,1],[6.6,3.0,4.4,1.4,1],[6.8,2.8,4.8,1.4,1],[6.7,3.0,5.0,1.7,1],[6.0,2.9,4.5,1.5,1],[5.7,2.6,3.5,1.0,1],[5.5,2.4,3.8,1.1,1],[5.5,2.4,3.7,1.0,1],[5.8,2.7,3.9,1.2,1],[6.0,2.7,5.1,1.6,1],[5.4,3.0,4.5,1.5,1],[6.0,3.4,4.5,1.6,1],[6.7,3.1,4.7,1.5,1],[6.3,2.3,4.4,1.3,1],[5.6,3.0,4.1,1.3,1],[5.5,2.5,4.0,1.3,1],[5.5,2.6,4.4,1.2,1],[6.1,3.0,4.6,1.4,1],[5.8,2.6,4.0,1.2,1],[5.0,2.3,3.3,1.0,1],[5.6,2.7,4.2,1.3,1],[5.7,3.0,4.2,1.2,1],[5.7,2.9,4.2,1.3,1],[6.2,2.9,4.3,1.3,1],[5.1,2.5,3.0,1.1,1],[5.7,2.8,4.1,1.3,1],
+      [6.3,3.3,6.0,2.5,2],[5.8,2.7,5.1,1.9,2],[7.1,3.0,5.9,2.1,2],[6.3,2.9,5.6,1.8,2],[6.5,3.0,5.8,2.2,2],[7.6,3.0,6.6,2.1,2],[4.9,2.5,4.5,1.7,2],[7.3,2.9,6.3,1.8,2],[6.7,2.5,5.8,1.8,2],[7.2,3.6,6.1,2.5,2],[6.5,3.2,5.1,2.0,2],[6.4,2.7,5.3,1.9,2],[6.8,3.0,5.5,2.1,2],[5.7,2.5,5.0,2.0,2],[5.8,2.8,5.1,2.4,2],[6.4,3.2,5.3,2.3,2],[6.5,3.0,5.5,1.8,2],[7.7,3.8,6.7,2.2,2],[7.7,2.6,6.9,2.3,2],[6.0,2.2,5.0,1.5,2],[6.9,3.2,5.7,2.3,2],[5.6,2.8,4.9,2.0,2],[7.7,2.8,6.7,2.0,2],[6.3,2.7,4.9,1.8,2],[6.7,3.3,5.7,2.1,2],[7.2,3.2,6.0,1.8,2],[6.2,2.8,4.8,1.8,2],[6.1,3.0,4.9,1.8,2],[6.4,2.8,5.6,2.1,2],[7.2,3.0,5.8,1.6,2],[7.4,2.8,6.1,1.9,2],[7.9,3.8,6.4,2.0,2],[6.4,2.8,5.6,2.2,2],[6.3,2.8,5.1,1.5,2],[6.1,2.6,5.6,1.4,2],[7.7,3.0,6.1,2.3,2],[6.3,3.4,5.6,2.4,2],[6.4,3.1,5.5,1.8,2],[6.0,3.0,4.8,1.8,2],[6.9,3.1,5.4,2.1,2],[6.7,3.1,5.6,2.4,2],[6.9,3.1,5.1,2.3,2],[5.8,2.7,5.1,1.9,2],[6.8,3.2,5.9,2.3,2],[6.7,3.3,5.7,2.5,2],[6.7,3.0,5.2,2.3,2],[6.3,2.5,5.0,1.9,2],[6.5,3.0,5.2,2.0,2],[6.2,3.4,5.4,2.3,2],[5.9,3.0,5.1,1.8,2]
+    ];
+
+    const SPECIES_INFO = [
+      { id: 0, name: 'setosa', korean: '세토사', color: '#6366f1', colorRgb: '99, 102, 241', gradStart: '#a5b4fc', gradEnd: '#4f46e5' },
+      { id: 1, name: 'versicolor', korean: '버시컬러', color: '#ec4899', colorRgb: '236, 72, 153', gradStart: '#fbcfe8', gradEnd: '#db2777' },
+      { id: 2, name: 'virginica', korean: '버진아카', color: '#10b981', colorRgb: '16, 185, 129', gradStart: '#6ee7b7', gradEnd: '#047857' }
+    ];
+
+    const FEATURE_NAMES = [
+      { id: 0, key: 'sepalLength', min: 4.3, max: 7.9 },
+      { id: 1, key: 'sepalWidth', min: 2.0, max: 4.4 },
+      { id: 2, key: 'petalLength', min: 1.0, max: 6.9 },
+      { id: 3, key: 'petalWidth', min: 0.1, max: 2.5 }
+    ];
+
+    const formattedData = IRIS_RAW_DATA.map((row, idx) => ({
+      id: idx,
+      sepalLength: row[0],
+      sepalWidth: row[1],
+      petalLength: row[2],
+      petalWidth: row[3],
+      species: row[4],
+      speciesName: SPECIES_INFO[row[4]].name,
+      speciesKorean: SPECIES_INFO[row[4]].korean
+    }));
+
+    // ==========================================
+    // 2. 글로벌 상태 (State)
+    // ==========================================
+    const state = {
+      activeTab: 'predictor',
+      kValue: 3,
+      features: [5.8, 3.0, 4.35, 1.3], // SL, SW, PL, PW
+      scatterX: 2,
+      scatterY: 3,
+      searchQuery: '',
+      currentPrediction: null // { predictedSpecies, confidence, neighbors }
+    };
+
+    const scatterConfig = { width: 320, height: 240, padding: 30 };
+
+    // ==========================================
+    // 3. 헬퍼 함수
+    // ==========================================
+    const getScale = (featureIdx, val, isX) => {
+      const config = FEATURE_NAMES[featureIdx];
+      const min = config.min - 0.2;
+      const max = config.max + 0.2;
+      const viewSize = isX ? scatterConfig.width - (scatterConfig.padding * 2) : scatterConfig.height - (scatterConfig.padding * 2);
+      const offset = scatterConfig.padding;
+      if (isX) {
+        return offset + ((val - min) / (max - min)) * viewSize;
+      } else {
+        return scatterConfig.height - offset - ((val - min) / (max - min)) * viewSize;
+      }
+    };
+
+    const calculateKNN = () => {
+      const dists = formattedData.map(row => {
+        const d = Math.sqrt(
+          Math.pow(row.sepalLength - state.features[0], 2) +
+          Math.pow(row.sepalWidth - state.features[1], 2) +
+          Math.pow(row.petalLength - state.features[2], 2) +
+          Math.pow(row.petalWidth - state.features[3], 2)
+        );
+        return { distance: d, species: row.species, id: row.id, item: row };
+      });
+
+      dists.sort((a, b) => a.distance - b.distance);
+      const neighbors = dists.slice(0, state.kValue);
+
+      const votes = [0, 0, 0];
+      neighbors.forEach(n => votes[n.species]++);
+
+      let maxVotes = -1;
+      let predictedSpecies = 0;
+      for (let i = 0; i < votes.length; i++) {
+        if (votes[i] > maxVotes) {
+          maxVotes = votes[i];
+          predictedSpecies = i;
+        }
+      }
+
+      const confidence = maxVotes / state.kValue;
+      state.currentPrediction = { predictedSpecies, confidence, neighbors };
+    };
+
+    // ==========================================
+    // 4. UI 렌더링 함수
+    // ==========================================
+
+    // 탭 전환
+    const renderTabs = () => {
+      ['predictor', 'explorer', 'dashboard'].forEach(tab => {
+        const btn = document.getElementById(`btn-tab-${tab}`);
+        const content = document.getElementById(`tab-${tab}`);
+        
+        if (state.activeTab === tab) {
+          content.classList.remove('hidden');
+          btn.className = "tab-btn flex-1 py-3 text-xs rounded-lg transition-all text-center cursor-pointer select-none active:scale-95 bg-slate-850 text-emerald-400 border border-slate-700 shadow-lg font-black";
+        } else {
+          content.classList.add('hidden');
+          btn.className = "tab-btn flex-1 py-3 text-xs font-bold rounded-lg transition-all text-center cursor-pointer select-none active:scale-95 text-slate-400 hover:text-slate-200";
+        }
+      });
+
+      if (state.activeTab === 'explorer') renderExplorer();
+      if (state.activeTab === 'dashboard') renderDashboard();
+    };
+
+    // Predictor 탭 업데이트
+    const updatePredictorUI = () => {
+      calculateKNN();
+      const p = state.currentPrediction;
+      const spInfo = SPECIES_INFO[p.predictedSpecies];
+
+      // 스코어보드
+      const nameEl = document.getElementById('pred-species-name');
+      nameEl.textContent = spInfo.korean;
+      nameEl.style.color = spInfo.color;
+      
+      document.getElementById('pred-confidence').textContent = `의사결정 신뢰율: ${(p.confidence * 100).toFixed(0)}%`;
+      
+      const iconEl = document.getElementById('pred-species-icon');
+      iconEl.textContent = spInfo.name.toUpperCase().substring(0, 3);
+      iconEl.style.borderColor = spInfo.color;
+      iconEl.style.backgroundColor = spInfo.color + '15';
+      iconEl.style.color = spInfo.color;
+
+      // SVG 모핑
+      document.getElementById('petal-stop-1').setAttribute('stop-color', spInfo.gradStart);
+      document.getElementById('petal-stop-2').setAttribute('stop-color', spInfo.gradEnd);
+      
+      const [sl, sw, pl, pw] = state.features;
+      document.getElementById('leaf1').setAttribute('d', `M100,100 C${100 - sw*10},${100 - sl*12} ${100 + sw*10},${100 - sl*12} 100,100`);
+      document.getElementById('leaf2').setAttribute('d', `M100,100 C${100 - pl*12},${100 + pw*10} ${100 - pl*4},${100 + pl*12} 100,100`);
+      document.getElementById('leaf3').setAttribute('d', `M100,100 C${100 + pl*4},${100 + pl*12} ${100 + pl*12},${100 + pw*10} 100,100`);
+      document.getElementById('flower-center').setAttribute('r', 3 + pw * 4);
+
+      // 슬라이더 값 동기화
+      document.getElementById('slider-sl').value = sl; document.getElementById('val-sl').textContent = sl.toFixed(1) + ' cm';
+      document.getElementById('slider-sw').value = sw; document.getElementById('val-sw').textContent = sw.toFixed(1) + ' cm';
+      document.getElementById('slider-pl').value = pl; document.getElementById('val-pl').textContent = pl.toFixed(1) + ' cm';
+      document.getElementById('slider-pw').value = pw; document.getElementById('val-pw').textContent = pw.toFixed(1) + ' cm';
+      document.getElementById('val-k').textContent = `K = ${state.kValue}`;
+
+      if (state.activeTab === 'explorer') renderExplorer();
+    };
+
+    // Explorer 탭 업데이트
+    const renderExplorer = () => {
+      const svg = document.getElementById('scatter-svg');
+      let svgContent = '';
+
+      // 1. Decision Grid (24x18)
+      const gridX = 24, gridY = 18;
+      const xFeature = FEATURE_NAMES[state.scatterX];
+      const yFeature = FEATURE_NAMES[state.scatterY];
+      const xMin = xFeature.min - 0.2, xMax = xFeature.max + 0.2;
+      const yMin = yFeature.min - 0.2, yMax = yFeature.max + 0.2;
+      const colWidth = (scatterConfig.width - scatterConfig.padding * 2) / gridX;
+      const rowHeight = (scatterConfig.height - scatterConfig.padding * 2) / gridY;
+
+      for (let i = 0; i < gridX; i++) {
+        const pctX = i / (gridX - 1);
+        const xVal = xMin + pctX * (xMax - xMin);
+        const xPos = scatterConfig.padding + pctX * (scatterConfig.width - scatterConfig.padding * 2);
+
+        for (let j = 0; j < gridY; j++) {
+          const pctY = j / (gridY - 1);
+          const yVal = yMin + pctY * (yMax - yMin);
+          const yPos = scatterConfig.height - scatterConfig.padding - rowHeight - pctY * (scatterConfig.height - scatterConfig.padding * 2);
+
+          const testVector = [...state.features];
+          testVector[state.scatterX] = xVal;
+          testVector[state.scatterY] = yVal;
+
+          const dists = formattedData.map(row => ({
+            distance: Math.sqrt(
+              Math.pow(row.sepalLength - testVector[0], 2) +
+              Math.pow(row.sepalWidth - testVector[1], 2) +
+              Math.pow(row.petalLength - testVector[2], 2) +
+              Math.pow(row.petalWidth - testVector[3], 2)
+            ),
+            species: row.species
+          })).sort((a, b) => a.distance - b.distance);
+
+          const votes = [0, 0, 0];
+          for (let k = 0; k < state.kValue; k++) votes[dists[k].species]++;
+          
+          let predictedSpecies = 0, maxVotes = -1;
+          for (let s = 0; s < 3; s++) {
+            if (votes[s] > maxVotes) { maxVotes = votes[s]; predictedSpecies = s; }
+          }
+
+          const cellColor = `rgba(${SPECIES_INFO[predictedSpecies].colorRgb}, 0.08)`;
+          svgContent += `<rect x="${xPos}" y="${yPos}" width="${colWidth + 0.5}" height="${rowHeight + 0.5}" fill="${cellColor}" shape-rendering="crispEdges" />`;
+        }
+      }
+
+      // 2. 축 라인
+      svgContent += `
+        <line x1="${scatterConfig.padding}" y1="${scatterConfig.height - scatterConfig.padding}" x2="${scatterConfig.width - scatterConfig.padding}" y2="${scatterConfig.height - scatterConfig.padding}" stroke="#475569" stroke-width="1" />
+        <line x1="${scatterConfig.padding}" y1="${scatterConfig.padding}" x2="${scatterConfig.padding}" y2="${scatterConfig.height - scatterConfig.padding}" stroke="#475569" stroke-width="1" />
+      `;
+
+      // 3. KNN 이웃선
+      const targetX = getScale(state.scatterX, state.features[state.scatterX], true);
+      const targetY = getScale(state.scatterY, state.features[state.scatterY], false);
+      const neighborIds = state.currentPrediction ? state.currentPrediction.neighbors.map(n => n.id) : [];
+
+      state.currentPrediction?.neighbors.forEach(nei => {
+        const nX = getScale(state.scatterX, nei.item[FEATURE_NAMES[state.scatterX].key], true);
+        const nY = getScale(state.scatterY, nei.item[FEATURE_NAMES[state.scatterY].key], false);
+        svgContent += `<line x1="${targetX}" y1="${targetY}" x2="${nX}" y2="${nY}" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="2 2" />`;
+      });
+
+      // 4. 산점도 포인트
+      formattedData.forEach(item => {
+        const cx = getScale(state.scatterX, item[FEATURE_NAMES[state.scatterX].key], true);
+        const cy = getScale(state.scatterY, item[FEATURE_NAMES[state.scatterY].key], false);
+        const spInfo = SPECIES_INFO[item.species];
+        const isKNeighbor = neighborIds.includes(item.id);
+        
+        svgContent += `<circle cx="${cx}" cy="${cy}" r="${isKNeighbor ? 6.5 : 3}" fill="${spInfo.color}" stroke="${isKNeighbor ? '#f59e0b' : 'none'}" stroke-width="${isKNeighbor ? 1.5 : 0}" opacity="${isKNeighbor ? 1.0 : 0.6}" />`;
+      });
+
+      // 5. 드래그 타겟(현재 설정값)
+      svgContent += `
+        <g>
+          <circle cx="${targetX}" cy="${targetY}" r="10" fill="none" stroke="#f59e0b" stroke-width="1" class="animate-ping" />
+          <circle cx="${targetX}" cy="${targetY}" r="5" fill="#f59e0b" stroke="#fff" stroke-width="1.5" />
+        </g>
+      `;
+
+      svg.innerHTML = svgContent;
+    };
+
+    // Dashboard 탭 업데이트
+    const renderDashboard = () => {
+      // 카드
+      if (document.getElementById('dashboard-cards').children.length === 0) {
+        let cardsHtml = '';
+        SPECIES_INFO.forEach(info => {
+          const count = formattedData.filter(d => d.species === info.id).length;
+          cardsHtml += `
+            <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl text-center">
+              <span class="text-[10px] font-bold block" style="color: ${info.color}">${info.korean}</span>
+              <span class="text-lg font-black block mt-0.5 text-white">${count}개</span>
+            </div>
+          `;
+        });
+        document.getElementById('dashboard-cards').innerHTML = cardsHtml;
+      }
+
+      // 테이블
+      const q = state.searchQuery.toLowerCase().trim();
+      const tbody = document.getElementById('table-body');
+      let tableHtml = '';
+      
+      formattedData.forEach(item => {
+        if (q === '' || item.speciesKorean.toLowerCase().includes(q) || item.speciesName.toLowerCase().includes(q)) {
+          const sp = SPECIES_INFO[item.species];
+          tableHtml += `
+            <tr class="hover:bg-slate-900/50">
+              <td class="p-2.5 pl-4 text-slate-500 font-mono">#${item.id + 1}</td>
+              <td class="p-2.5">${item.petalLength} / ${item.petalWidth} cm</td>
+              <td class="p-2.5">
+                <span class="font-bold text-[10px]" style="color: ${sp.color}">${sp.korean}</span>
+              </td>
+            </tr>
+          `;
+        }
+      });
+      tbody.innerHTML = tableHtml;
+    };
+
+
+    // ==========================================
+    // 5. 이벤트 바인딩 및 초기화
+    // ==========================================
+    const init = () => {
+      // 탭 이벤트
+      ['predictor', 'explorer', 'dashboard'].forEach(tab => {
+        document.getElementById(`btn-tab-${tab}`).addEventListener('click', (e) => {
+          e.preventDefault();
+          state.activeTab = tab;
+          renderTabs();
+        });
+      });
+
+      // 슬라이더 이벤트
+      ['sl', 'sw', 'pl', 'pw'].forEach((key, idx) => {
+        document.getElementById(`slider-${key}`).addEventListener('input', (e) => {
+          state.features[idx] = parseFloat(e.target.value);
+          updatePredictorUI();
+        });
+      });
+
+      // 프리셋 버튼
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          state.features = [
+            parseFloat(e.target.dataset.sl),
+            parseFloat(e.target.dataset.sw),
+            parseFloat(e.target.dataset.pl),
+            parseFloat(e.target.dataset.pw)
+          ];
+          updatePredictorUI();
+        });
+      });
+
+      // KNN K값 조절
+      document.getElementById('btn-k-minus').addEventListener('click', () => {
+        state.kValue = Math.max(1, state.kValue - 2);
+        updatePredictorUI();
+      });
+      document.getElementById('btn-k-plus').addEventListener('click', () => {
+        state.kValue = Math.min(15, state.kValue + 2);
+        updatePredictorUI();
+      });
+
+      // 산점도 축 조절
+      document.getElementById('select-x').addEventListener('change', (e) => {
+        state.scatterX = parseInt(e.target.value);
+        if(state.activeTab === 'explorer') renderExplorer();
+      });
+      document.getElementById('select-y').addEventListener('change', (e) => {
+        state.scatterY = parseInt(e.target.value);
+        if(state.activeTab === 'explorer') renderExplorer();
+      });
+
+      // 검색 필터
+      document.getElementById('search-input').addEventListener('input', (e) => {
+        state.searchQuery = e.target.value;
+        if(state.activeTab === 'dashboard') renderDashboard();
+      });
+
+      // 최초 렌더링
+      updatePredictorUI();
+      renderTabs();
+    };
+
+    document.addEventListener('DOMContentLoaded', init);
+
+  </script>
+</body>
+</html>
